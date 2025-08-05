@@ -1,15 +1,14 @@
-# 🎬 Movie Recommendation App
+# 🎬 Movie2Day — AI-Powered Movie Recommendation System
 
-A content-based movie recommender built using Streamlit and the TMDb dataset.
+An interactive, AI-based movie recommender using TMDb data and Streamlit.
 
-## Features
-- Recommends top 10 similar movies based on selected title
-- Movie posters with hover effect and IMDb ratings
-- Clickable posters redirect to TMDb for full details
+## 🔗 Live Demo
+[👉 Try it here](https://movie2day.streamlit.app/)
 
-## Tech Stack
-- Python, Scikit-learn, Streamlit
-- TMDb API for metadata and posters
+## 📦 Tech Stack
+- Python, Pandas, Scikit-learn
+- Streamlit
+- TMDb API for real-time movie data
 
 ## Run Locally
 ```bash
