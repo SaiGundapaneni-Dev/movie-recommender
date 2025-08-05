@@ -1,4 +1,5 @@
 import pandas as pd
+import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -44,7 +45,7 @@ def recommend(title, num_recommendations=10):
 
 import requests
 
-API_KEY = "1410b28c5e0aefcb0848b68c5217caad"
+API_KEY = st.secrets["TMDB_API_KEY"]
 
 def fetch_movie_details(title):
     search_url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={title}"
