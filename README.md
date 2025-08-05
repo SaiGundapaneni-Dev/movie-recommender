@@ -1,13 +1,17 @@
 # 🎬 Movie Recommendation App
 
-This is a simple content-based movie recommendation system built with Streamlit.
+A content-based movie recommender built using Streamlit and the TMDb dataset.
 
-## How it works
-- Uses movie overviews (descriptions) from TMDB 5000 dataset
-- Applies TF-IDF vectorization and cosine similarity
-- Recommends top 5 similar movies
+## Features
+- Recommends top 10 similar movies based on selected title
+- Movie posters with hover effect and IMDb ratings
+- Clickable posters redirect to TMDb for full details
 
-## Run locally
+## Tech Stack
+- Python, Scikit-learn, Streamlit
+- TMDb API for metadata and posters
+
+## Run Locally
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
