@@ -1,69 +1,71 @@
+# recommender.py (Real-time TMDb version)
+
+import requests
 import pandas as pd
-import streamlit as st
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import streamlit as st
 
-# Load data
-df = pd.read_csv('data/tmdb_5000_movies.csv')
+API_KEY = st.secrets["TMDB_API_KEY"]
 
-# Fill empty overviews with empty string
-df['overview'] = df['overview'].fillna('')
+# Fetch real-time movie data from TMDb API
+def fetch_popular_movies(pages=3):
+    all_movies = []
+    for page in range(1, pages + 1):
+        url = f"https://api.themoviedb.org/3/movie/popular?api_key={API_KEY}&language=en-US&page={page}"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            for movie in data["results"]:
+                all_movies.append({
+                    "id": movie["id"],
+                    "title": movie["title"],
+                    "overview": movie.get("overview", ""),
+                    "poster_path": movie.get("poster_path", ""),
+                    "vote_average": movie.get("vote_average", "N/A")
+                })
+    return pd.DataFrame(all_movies)
 
-# 1. Convert movie overviews to TF-IDF matrix
-tfidf = TfidfVectorizer(stop_words='english')
-tfidf_matrix = tfidf.fit_transform(df['overview'])
+# Build similarity model
+def build_similarity_matrix(df):
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(df["overview"])
+    cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    return cosine_sim
 
-# 2. Compute similarity between movies using cosine similarity
-cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+# Initialize data and similarity
+@st.cache_data(show_spinner=False)
+def get_data():
+    df = fetch_popular_movies(pages=5)
+    sim_matrix = build_similarity_matrix(df)
+    return df, sim_matrix
 
-# 3. Create a reverse mapping from movie title to index
-title_to_index = pd.Series(df.index, index=df['title']).drop_duplicates()
+df, cosine_sim = get_data()
 
-# 4. Recommendation function
+title_to_index = pd.Series(df.index, index=df['title'])
+
+# Generate recommendation list
 def recommend(title, num_recommendations=10):
     if title not in title_to_index:
         return [], [], [], []
 
     idx = title_to_index[title]
     sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:num_recommendations + 1]
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:num_recommendations+1]
 
     names, posters, descriptions, links = [], [], [], []
-
     for i in sim_scores:
-        movie_title = df['title'].iloc[i[0]]
-        poster, desc, url, rating = fetch_movie_details(movie_title)
+        movie = df.iloc[i[0]]
+        movie_id = movie['id']
+        poster_url = f"https://image.tmdb.org/t/p/w500{movie['poster_path']}"
+        overview = movie['overview']
+        rating = movie['vote_average']
+        link = f"https://www.themoviedb.org/movie/{movie_id}"
 
-        names.append(movie_title)
-        posters.append(poster)
-        descriptions.append({'text': desc, 'rating': rating})
-        links.append(url)
+        names.append(movie['title'])
+        posters.append(poster_url)
+        descriptions.append({"text": overview, "rating": rating})
+        links.append(link)
 
     return names, posters, descriptions, links
-
-
-import requests
-
-API_KEY = st.secrets["TMDB_API_KEY"]
-
-def fetch_movie_details(title):
-    search_url = f"https://api.themoviedb.org/3/search/movie?api_key={API_KEY}&query={title}"
-    response = requests.get(search_url)
-    data = response.json()
-
-    if data['results']:
-        movie = data['results'][0]
-        poster_path = movie.get('poster_path')
-        overview = movie.get('overview', 'No description available.')
-        tmdb_id = movie.get('id')
-        rating = movie.get('vote_average', 'N/A')
-
-        full_poster = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "https://via.placeholder.com/200x300"
-        tmdb_url = f"https://www.themoviedb.org/movie/{tmdb_id}"
-
-        return full_poster, overview, tmdb_url, rating
-
-    return "https://via.placeholder.com/200x300", "No description found.", "#", "N/A"
-
-
